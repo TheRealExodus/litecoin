@@ -1,9 +1,10 @@
-Litecoin Core version 0.10.2.2 is now available from:
+Litecoin Core version 0.10.4.0 is now available from:
 
-  <https://download.litecoin.org/litecoin-0.10.2.2/>
+  <https://download.litecoin.org/litecoin-0.10.4.0/>
 
-This is a new major version release, bringing bug fixes and translation 
-updates. It is recommended to upgrade to this version.
+This is a new minor version release, bringing bug fixes, the BIP65
+(CLTV) consensus change, and relay policy preparation for BIP113. It is
+recommended to upgrade to this version as soon as possible.
 
 Please report bugs using the issue tracker at github:
 
@@ -43,42 +44,71 @@ supported and may break as soon as the older version attempts to reindex.
 
 This does not affect wallet forward or backward compatibility.
 
-
-Litecoin 0.10.2.2 Change log
+Notable changes since 0.10.3
 ============================
-This release is based upon Bitcoin Core v0.10.2.  Their upstream changelog applies to us and
-is included in as separate release-notes.  This section describes the Litecoin-specific differences.
 
-Protocol:
-- Scrypt Proof-of-Work instead of sha256d, however block hashes are sha256d for performance reasons.
-- Litecoin TCP port 9333 (instead of 8333)
-- RPC TCP port 9332 (instead of 8332)
-- Testnet TCP port 19333 (instead of 18333)
-- Testnet RPC TCP port 19332 (instead of 18332)
-- 84 million coin limit  (instead of 21 million)
-- Magic 0xfbc0b6db       (instead of 0xf9beb4d9)
-- Target Block Time 2.5 minutes (instead of 10 minutes)
-- Target Timespan 3.5 days      (instead of two weeks)
-- bnProofOfWorkLimit = >> 20    (instead of >> 32)
-- See 9a980612005adffdeb2a17ca7a09fe126dd45e0e for Genesis Parameters
-- zeitgeist2 protection: b1b31d15cc720a1c186431b21ecc9d1a9062bcb6 Slightly different way to calculate difficulty changes.
-- Litecoin Core v0.10.2.2 is protocol version 70003 (instead of 70002)
+BIP65 soft fork to enforce OP_CHECKLOCKTIMEVERIFY opcode
+--------------------------------------------------------
 
-Relay:
-- Litecoin Core rounds transaction size up to the nearest 1000 bytes before calculating fees.  This size rounding behavior is to mimic fee calculation of Litecoin v0.6 and v0.8.
-- Bitcoin's IsDust() is disabled in favor of Litecoin's fee-based dust penalty.
-- Fee-based Dust Penalty: For each transaction output smaller than DUST_THRESHOLD (currently 0.001 LTC) the default relay/mining policy will expect an additional 1000 bytes of fee.  Otherwise the transaction will be rejected from relay/mining.  Such transactions are also disqualified from the free/high-priority transaction rule.
-- Miners and relays can adjust the expected fee per-KB with the -minrelaytxfee parameter.
+This release includes several changes related to the [BIP65][] soft fork
+which redefines the existing OP_NOP2 opcode as OP_CHECKLOCKTIMEVERIFY
+(CLTV) so that a transaction output can be made unspendable until a
+specified point in the future.
 
-Wallet:
-- Coins smaller than 0.00001 LTC are by default ignored by the wallet.  Use the -mininput parameter if you want to see smaller coins.
+1. This release will only relay and mine transactions spending a CLTV
+   output if they comply with the BIP65 rules as provided in code.
 
-Notable changes since Litecoin v0.8
-===================================
+2. This release will produce version 4 blocks by default. Please see the
+   *notice to miners* below.
 
-- The Block data and indexes of v0.10 are incompatible with v0.8 clients.  You can upgrade from v0.8 but you downgrading is not possible.  For this reason you may want to make a backup copy of your Data Directory.
-- litecoind no longer sends RPC commands.  You must use the separate litecoin-cli command line utility.
-- Watch-Only addresses are now possible.
+3. Once 951 out of a sequence of 1,001 blocks on the local node's best block
+   chain contain version 4 (or higher) blocks, this release will no
+   longer accept new version 3 blocks and it will only accept version 4
+   blocks if they comply with the BIP65 rules for CLTV.
+
+**Notice to miners:** Litecoin Core’s block templates are now for
+version 4 blocks only, and any mining software relying on its
+getblocktemplate must be updated in parallel to use libblkmaker either
+version v0.4.3 or any version from v0.5.2 onward.
+
+- If you are solo mining, this will affect you the moment you upgrade
+  Litecoin Core, which must be done prior to BIP65 achieving its 951/1001
+  status.
+
+- If you are mining with the stratum mining protocol: this does not
+  affect you.
+
+- If you are mining with the getblocktemplate protocol to a pool: this
+  will affect you at the pool operator’s discretion, which must be no
+  later than BIP65 achieving its 951/1001 status.
+
+[BIP65]: https://github.com/bitcoin/bips/blob/master/bip-0065.mediawiki
+
+
+Windows bug fix for corrupted UTXO database on unclean shutdowns
+----------------------------------------------------------------
+
+Several Windows users reported that they often need to reindex the
+entire blockchain after an unclean shutdown of Litecoin Core on Windows
+(or an unclean shutdown of Windows itself). Although unclean shutdowns
+remain unsafe, this release no longer relies on memory-mapped files for
+the UTXO database, which significantly reduced the frequency of unclean
+shutdowns leading to required reindexes during testing.
+
+For more information, see: <https://github.com/bitcoin/bitcoin/pull/6917>
+
+Other fixes for database corruption on Windows are expected in the
+next major release.
+
+0.10.4 Change log
+=================
+
+This release is based upon Bitcoin Core v0.10.4.  Their upstream changelog applies to us and
+is included in as separate release-notes, see: [Release Notes](release-notes.md).  
+This section describes the Litecoin-specific differences.
+
+- Added BIP65 CHECKLOCKTIMEVERIFY softfork.
+- Increased OP_RETURN relay size to 80 bytes.
 
 Credits
 =======
@@ -87,9 +117,8 @@ Thanks to everyone who directly contributed to this release:
 
 - Charles Lee
 - pooler
-- Gitju
 - Adrian Gallagher
 - Anton Yemelyanov
-- Martin Smith
 - Warren Togami
+- BtcDrak
 
